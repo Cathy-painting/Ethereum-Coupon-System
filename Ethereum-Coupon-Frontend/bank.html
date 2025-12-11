@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行管理系统 - Bank Admin</title>
+    <!-- 引入 Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; 
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            min-height: 100vh;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            padding: 40px 20px;
+        }
+        
+        .container { 
+            background: linear-gradient(135deg, #FFFFFF 0%, #F1F8F4 100%);
+            padding: 45px 50px; 
+            border-radius: 24px; 
+            box-shadow: 0 12px 48px rgba(76, 175, 80, 0.25);
+            width: 100%;
+            max-width: 1000px;
+            border: 3px solid #81C784;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h2 { 
+            text-align: center; 
+            color: #2E7D32;
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-shadow: 2px 2px 4px rgba(76, 175, 80, 0.1);
+        }
+        
+        h3 {
+            color: #388E3C;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .group { 
+            margin-bottom: 18px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            color: #1B5E20;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid #A5D6A7; 
+            border-radius: 12px; 
+            box-sizing: border-box;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: #F1F8F4;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #66BB6A;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 1em; 
+            font-weight: 600;
+            margin-top: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .btn-connect { 
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+            color: white;
+        }
+        
+        .btn-connect:hover {
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+        }
+        
+        .btn-action { 
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+            color: white;
+        }
+        
+        .btn-action:hover:not(:disabled) {
+            background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
+        }
+        
+        .btn-action:disabled { 
+            background: #E0E0E0;
+            color: #9E9E9E;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #EF5350 0%, #E53935 100%);
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, #E53935 0%, #D32F2F 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+            color: white;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+        
+        #walletAddress {
+            font-size: 0.85em;
+            color: #1B5E20;
+            margin-top: 10px;
+            padding: 10px;
+            background: #E8F5E9;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        #status { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 12px; 
+            font-size: 0.9em; 
+            word-break: break-all;
+            line-height: 1.6;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-info { 
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            color: #0D47A1;
+            border: 2px solid #90CAF9;
+        }
+        
+        .status-error { 
+            background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+            color: #C62828;
+            border: 2px solid #EF9A9A;
+        }
+        
+        .status-success { 
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            color: #2E7D32;
+            border: 2px solid #81C784;
+        }
+        
+        .divider { 
+            border-top: 2px dashed #A5D6A7; 
+            margin: 25px 0;
+        }
+        
+        /* 标签页样式 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #A5D6A7;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #1B5E20;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0;
+            box-shadow: none;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(76, 175, 80, 0.1);
+            transform: none;
+        }
+        
+        .tab-btn.active {
+            border-bottom-color: #4CAF50;
+            color: #2E7D32;
+            background: rgba(76, 175, 80, 0.15);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        /* 商家列表样式 */
+        .merchant-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .merchant-card {
+            background: linear-gradient(135deg, #F1F8F4 0%, #E8F5E9 100%);
+            border: 2px solid #A5D6A7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .merchant-card:hover {
+            border-color: #66BB6A;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+        }
+        
+        .merchant-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .merchant-info-item {
+            color: #1B5E20;
+        }
+        
+        .merchant-info-label {
+            font-weight: 600;
+            color: #2E7D32;
+        }
+        
+        .merchant-address {
+            font-size: 0.75em;
+            color: #666;
+            word-break: break-all;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #A5D6A7;
+        }
+        
+        .btn-small {
+            width: auto;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            margin-top: 8px;
+            margin-right: 8px;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #2E7D32;
+            font-weight: 600;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #C8E6C9;
+            color: #1B5E20;
+        }
+        
+        .badge-warning {
+            background: #FFE0B2;
+            color: #E65100;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>🏦 银行管理系统</h2>
+
+    <!-- 连接钱包 -->
+    <div class="group">
+        <button id="connectBtn" class="btn-connect" onclick="connectWallet()">连接 MetaMask 钱包</button>
+        <p id="walletAddress">未连接</p>
+    </div>
+
+    <div class="group">
+        <label>Bank 合约地址:</label>
+        <input type="text" id="bankContractAddr" placeholder="0x..." value="">
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 标签页导航 -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('merchant')">🏪 商家管理</button>
+        <button class="tab-btn" onclick="switchTab('settlement')">💰 结算管理</button>
+        <button class="tab-btn" onclick="switchTab('query')">📊 查询统计</button>
+    </div>
+
+    <!-- 商家管理 -->
+    <div id="tab-merchant" class="tab-content active">
+        <h3>商家管理</h3>
+        <div class="group">
+            <label>商家账户地址 (Merchant Owner Address):</label>
+            <input type="text" id="merchantOwnerAddr" placeholder="0x...">
+        </div>
+        <button class="btn-action" onclick="createMerchant()" disabled id="createMerchantBtn">创建商家合约</button>
+        
+        <div class="divider"></div>
+        
+        <button class="btn-action" onclick="queryAllMerchants()" disabled id="queryMerchantsBtn">查询所有商家</button>
+        <div id="merchantListContainer" class="merchant-list"></div>
+    </div>
+
+    <!-- 结算管理 -->
+    <div id="tab-settlement" class="tab-content">
+        <h3>结算余额管理</h3>
+        <div class="group">
+            <label>商家合约地址 (Merchant Contract):</label>
+            <input type="text" id="settlementMerchantAddr" placeholder="0x...">
+        </div>
+        <div class="group">
+            <label>充值金额:</label>
+            <input type="number" id="approveAmount" placeholder="例如: 10000">
+        </div>
+        <button class="btn-action" onclick="approveMerchant()" disabled id="approveBtn">充值结算余额</button>
+        
+        <div class="divider"></div>
+        
+        <div class="group">
+            <label>提取商家合约地址:</label>
+            <input type="text" id="withdrawMerchantAddr" placeholder="0x...">
+        </div>
+        <button class="btn-warning" onclick="approveWithdraw()" disabled id="withdrawBtn">批准提取余额</button>
+        
+        <div class="divider"></div>
+        
+        <div class="group">
+            <label>查询商家合约地址:</label>
+            <input type="text" id="queryBalanceMerchantAddr" placeholder="0x...">
+        </div>
+        <button class="btn-action" onclick="querySettlementBalance()" disabled id="queryBalanceBtn">查询结算余额</button>
+    </div>
+
+    <!-- 查询统计 -->
+    <div id="tab-query" class="tab-content">
+        <h3>系统查询统计</h3>
+        <div class="group">
+            <label>商家账户地址 (Owner Address):</label>
+            <input type="text" id="queryMerchantOwnerAddr" placeholder="0x...">
+        </div>
+        <button class="btn-action" onclick="getCorrespondingMerchant()" disabled id="getCorrespondingBtn">查询对应的商家合约</button>
+        
+        <div class="divider"></div>
+        
+        <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+            <strong>📊 系统统计信息</strong>
+            <div id="statsContainer" style="margin-top: 10px; line-height: 1.8;">
+                <p>连接钱包后可查看统计信息</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    let provider;
+    let signer;
+    let userAddress;
+
+    // Bank 合约 ABI
+    const bankAbi = [
+        "function createMerchant(address merchantAccount)",
+        "function approve(address merchantAddress, uint amount)",
+        "function approveWithdraw(address merchantAddress)",
+        "function getMerchants() view returns (address[])",
+        "function getCorrespondingMerchant(address merchantAccount) view returns (address)"
+    ];
+    
+    // Merchant 合约 ABI
+    const merchantAbi = [
+        "function getSettlementBalance() view returns (uint)",
+        "function getOwner() view returns (address)",
+        "function getNotGivenCoupons() view returns (address[])",
+        "function getUnusedCoupons() view returns (address[])",
+        "function getUsedCoupons() view returns (address[])"
+    ];
+    
+    // Consumer 合约 ABI
+    const consumerAbi = [
+        "function freezeConsumer()",
+        "function thawConsumer()",
+        "function getCoupons() view returns (address[])"
+    ];
+
+    // 初始化检查
+    window.onload = function() {
+        if (typeof window.ethereum === 'undefined') {
+            showStatus("未检测到 MetaMask，请安装插件。", "error");
+        }
+    };
+
+    // 连接钱包
+    async function connectWallet() {
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            userAddress = await signer.getAddress();
+
+            document.getElementById("walletAddress").innerText = "银行管理员账户: " + userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+            document.getElementById("connectBtn").innerText = "钱包已连接";
+            
+            // 启用所有按钮
+            enableAllButtons();
+            
+            showStatus("✅ 钱包连接成功！欢迎，银行管理员。", "success");
+        } catch (error) {
+            console.error(error);
+            showStatus("连接失败: " + error.message, "error");
+        }
+    }
+
+    // 启用所有按钮
+    function enableAllButtons() {
+        const buttons = [
+            'createMerchantBtn', 'queryMerchantsBtn', 'approveBtn', 
+            'withdrawBtn', 'queryBalanceBtn', 'getCorrespondingBtn'
+        ];
+        buttons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.disabled = false;
+        });
+    }
+
+    // 标签页切换
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById('tab-' + tabName).classList.add('active');
+        event.target.classList.add('active');
+        showStatus('', 'info');
+    }
+
+    // 1. 创建商家合约
+    async function createMerchant() {
+        const bankAddr = document.getElementById("bankContractAddr").value.trim();
+        const merchantOwnerAddr = document.getElementById("merchantOwnerAddr").value.trim();
+
+        if (!ethers.utils.isAddress(bankAddr)) return showStatus("Bank合约地址无效", "error");
+        if (!ethers.utils.isAddress(merchantOwnerAddr)) return showStatus("商家账户地址无效", "error");
+
+        try {
+            showStatus("正在创建商家合约，请在 MetaMask 中确认...", "info");
+            const bankContract = new ethers.Contract(bankAddr, bankAbi, signer);
+            
+            const tx = await bankContract.createMerchant(merchantOwnerAddr);
+            showStatus(`交易已发送! 等待确认... <br> Hash: ${tx.hash}`, "info");
+            
+            const receipt = await tx.wait();
+            if (receipt.status === 1) {
+                showStatus(` 商家合约创建成功！<br>请调用"查询所有商家"查看新创建的商家合约地址。`, "success");
+            } else {
+                showStatus(" 交易失败", "error");
+            }
+        } catch (error) {
+            console.error("创建商家错误:", error);
+            showStatus("创建失败: " + (error.reason || error.message || "未知错误"), "error");
+        }
+    }
+
+    // 2. 查询所有商家
+    async function queryAllMerchants() {
+        const bankAddr = document.getElementById("bankContractAddr").value.trim();
+        if (!ethers.utils.isAddress(bankAddr)) return showStatus("Bank合约地址无效", "error");
+
+        try {
+            const container = document.getElementById("merchantListContainer");
+            container.innerHTML = '<div class="loading">加载中...</div>';
+            
+            const bankContract = new ethers.Contract(bankAddr, bankAbi, provider);
+            const merchantAddresses = await bankContract.getMerchants();
+            
+            if (merchantAddresses.length === 0) {
+                container.innerHTML = '<div class="loading">暂无商家</div>';
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < merchantAddresses.length; i++) {
+                const merchantAddr = merchantAddresses[i];
+                const merchantContract = new ethers.Contract(merchantAddr, merchantAbi, provider);
+                
+                try {
+                    const balance = await merchantContract.getSettlementBalance();
+                    const owner = await merchantContract.getOwner();
+                    const notGiven = await merchantContract.getNotGivenCoupons();
+                    const unused = await merchantContract.getUnusedCoupons();
+                    const used = await merchantContract.getUsedCoupons();
+                    
+                    html += `
+                        <div class="merchant-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <strong style="color: #2E7D32; font-size: 1.1em;">商家 #${i + 1}</strong>
+                                <span class="badge badge-success">正常运营</span>
+                            </div>
+                            <div class="merchant-info">
+                                <div class="merchant-info-item">
+                                    <span class="merchant-info-label">结算余额:</span> ${balance} 元
+                                </div>
+                                <div class="merchant-info-item">
+                                    <span class="merchant-info-label">未发放:</span> ${notGiven.length} 张
+                                </div>
+                                <div class="merchant-info-item">
+                                    <span class="merchant-info-label">已发放:</span> ${unused.length} 张
+                                </div>
+                                <div class="merchant-info-item">
+                                    <span class="merchant-info-label">已核销:</span> ${used.length} 张
+                                </div>
+                            </div>
+                            <div class="merchant-address">
+                                <span class="merchant-info-label">商家账户:</span> ${owner}
+                            </div>
+                            <div class="merchant-address">
+                                <span class="merchant-info-label">合约地址:</span> ${merchantAddr}
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn-small btn-action" onclick="copyToClipboard('${merchantAddr}')">复制合约地址</button>
+                                <button class="btn-small btn-action" onclick="fillMerchantAddr('${merchantAddr}')">填入结算管理</button>
+                            </div>
+                        </div>
+                    `;
+                } catch (err) {
+                    console.error('查询商家详情失败:', err);
+                }
+            }
+            
+            container.innerHTML = html || '<div class="loading">查询失败</div>';
+            showStatus(`✅ 查询成功，共 ${merchantAddresses.length} 个商家`, "success");
+            
+        } catch (error) {
+            console.error("查询错误:", error);
+            document.getElementById("merchantListContainer").innerHTML = '';
+            showStatus("查询失败: " + (error.message || "未知错误"), "error");
+        }
+    }
+
+    // 3. 充值商家结算余额
+    async function approveMerchant() {
+        const bankAddr = document.getElementById("bankContractAddr").value.trim();
+        const merchantAddr = document.getElementById("settlementMerchantAddr").value.trim();
+        const amount = document.getElementById("approveAmount").value.trim();
+
+        if (!ethers.utils.isAddress(bankAddr)) return showStatus("Bank合约地址无效", "error");
+        if (!ethers.utils.isAddress(merchantAddr)) return showStatus("商家合约地址无效", "error");
+        if (!amount || amount <= 0) return showStatus("充值金额必须大于0", "error");
+
+        try {
+            showStatus("正在充值，请在 MetaMask 中确认...", "info");
+            const bankContract = new ethers.Contract(bankAddr, bankAbi, signer);
+            
+            const tx = await bankContract.approve(merchantAddr, amount);
+            showStatus(`交易已发送! 等待确认... <br> Hash: ${tx.hash}`, "info");
+            
+            const receipt = await tx.wait();
+            if (receipt.status === 1) {
+                showStatus(`✅ 充值成功！已为商家充值 ${amount} 元结算余额`, "success");
+            } else {
+                showStatus("❌ 交易失败", "error");
+            }
+        } catch (error) {
+            console.error("充值错误:", error);
+            showStatus("充值失败: " + (error.reason || error.message || "未知错误"), "error");
+        }
+    }
+
+    // 4. 批准商家提取余额
+    async function approveWithdraw() {
+        const bankAddr = document.getElementById("bankContractAddr").value.trim();
+        const merchantAddr = document.getElementById("withdrawMerchantAddr").value.trim();
+
+        if (!ethers.utils.isAddress(bankAddr)) return showStatus("Bank合约地址无效", "error");
+        if (!ethers.utils.isAddress(merchantAddr)) return showStatus("商家合约地址无效", "error");
+
+        try {
+            showStatus("正在批准提取，请在 MetaMask 中确认...", "info");
+            const bankContract = new ethers.Contract(bankAddr, bankAbi, signer);
+            
+            const tx = await bankContract.approveWithdraw(merchantAddr);
+            showStatus(`交易已发送! 等待确认... <br> Hash: ${tx.hash}`, "info");
+            
+            const receipt = await tx.wait();
+            if (receipt.status === 1) {
+                showStatus(`✅ 批准成功！商家余额已清零`, "success");
+            } else {
+                showStatus("❌ 交易失败", "error");
+            }
+        } catch (error) {
+            console.error("批准提取错误:", error);
+            showStatus("操作失败: " + (error.reason || error.message || "未知错误"), "error");
+        }
+    }
+
+    // 5. 查询商家结算余额
+    async function querySettlementBalance() {
+        const merchantAddr = document.getElementById("queryBalanceMerchantAddr").value.trim();
+        if (!ethers.utils.isAddress(merchantAddr)) return showStatus("商家合约地址无效", "error");
+
+        try {
+            const merchantContract = new ethers.Contract(merchantAddr, merchantAbi, provider);
+            const balance = await merchantContract.getSettlementBalance();
+            showStatus(`✅ 查询成功！<br>商家结算余额: <strong>${balance} 元</strong>`, "success");
+        } catch (error) {
+            console.error("查询余额错误:", error);
+            showStatus("查询失败: " + (error.message || "未知错误"), "error");
+        }
+    }
+
+    // 6. 查询对应的商家合约
+    async function getCorrespondingMerchant() {
+        const bankAddr = document.getElementById("bankContractAddr").value.trim();
+        const ownerAddr = document.getElementById("queryMerchantOwnerAddr").value.trim();
+
+        if (!ethers.utils.isAddress(bankAddr)) return showStatus("Bank合约地址无效", "error");
+        if (!ethers.utils.isAddress(ownerAddr)) return showStatus("商家账户地址无效", "error");
+
+        try {
+            const bankContract = new ethers.Contract(bankAddr, bankAbi, provider);
+            const merchantAddr = await bankContract.getCorrespondingMerchant(ownerAddr);
+            
+            showStatus(`✅ 查询成功！<br>商家合约地址: <strong>${merchantAddr}</strong>`, "success");
+            
+            // 查询商家详情
+            const merchantContract = new ethers.Contract(merchantAddr, merchantAbi, provider);
+            const balance = await merchantContract.getSettlementBalance();
+            
+            showStatus(`✅ 查询成功！<br>商家合约地址: <strong>${merchantAddr}</strong><br>结算余额: <strong>${balance} 元</strong>`, "success");
+        } catch (error) {
+            console.error("查询错误:", error);
+            showStatus("查询失败: " + (error.message || "未知错误"), "error");
+        }
+    }
+
+    // 辅助函数：复制到剪贴板
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showStatus("✅ 已复制到剪贴板: " + text, "success");
+        }).catch(err => {
+            showStatus("❌ 复制失败", "error");
+        });
+    }
+
+    // 辅助函数：填入结算管理
+    function fillMerchantAddr(addr) {
+        document.getElementById("settlementMerchantAddr").value = addr;
+        document.getElementById("queryBalanceMerchantAddr").value = addr;
+        switchTab('settlement');
+        showStatus("✅ 已填入商家地址到结算管理", "success");
+    }
+
+    // 辅助函数：显示状态
+    function showStatus(msg, type) {
+        const el = document.getElementById("status");
+        el.innerHTML = msg;
+        el.className = "";
+        if (type === "error") el.classList.add("status-error");
+        else if (type === "success") el.classList.add("status-success");
+        else el.classList.add("status-info");
+    }
+</script>
+
+</body>
+</html>
