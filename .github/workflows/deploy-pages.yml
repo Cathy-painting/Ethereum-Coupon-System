@@ -1,0 +1,41 @@
+name: Deploy Ethereum-Coupon-Frontend (Pure HTML) to GitHub Pages
+# 触发条件：main分支推送，且前端目录/部署配置文件修改时执行
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Ethereum-Coupon-Frontend/**'  # 纯HTML目录变更触发
+      - '.github/workflows/deploy-pages.yml'  # 匹配你创建的配置文件名
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 部署必需的权限
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 拉取仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 确保拉取完整目录
+
+      - name: 部署纯HTML目录到GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        id: deployment
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # 直接部署纯HTML的源目录（核心！无需构建，指向你的前端目录）
+          publish_dir: ./Ethereum-Coupon-Frontend
+          publish_branch: gh-pages  # 部署到自动创建的gh-pages分支
+          # 规范bot提交信息
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'chore: deploy pure HTML frontend ${GITHUB_SHA::8}'
+          # 清空旧内容，只保留最新的HTML文件
+          force_orphan: true
