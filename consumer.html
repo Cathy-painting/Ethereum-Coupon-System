@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的优惠券 - 用户端</title>
+    <!-- 引入 Ethers.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <!-- 引入 QRCode.js 用于生成二维码 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; 
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFE5B4 100%);
+            min-height: 100vh;
+            padding: 40px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container { 
+            width: 100%; 
+            max-width: 900px; 
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card { 
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFFEF7 100%);
+            padding: 45px 50px; 
+            border-radius: 24px; 
+            box-shadow: 0 12px 48px rgba(255, 193, 7, 0.25);
+            margin-bottom: 30px;
+            border: 3px solid #FFD54F;
+        }
+        
+        h2 { 
+            margin-top: 0; 
+            color: #F57C00;
+            font-size: 1.8em;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(255, 193, 7, 0.1);
+        }
+        
+        h3 {
+            margin-top: 0;
+            color: #F57C00;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        
+        label {
+            display: block;
+            color: #E65100;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid #FFE082; 
+            border-radius: 12px; 
+            box-sizing: border-box; 
+            margin-top: 5px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: #FFFEF7;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #FFC107;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 1em; 
+            font-weight: 600;
+            margin-top: 12px; 
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);
+            color: #5D4037;
+        }
+        
+        .btn-primary:hover { 
+            background: linear-gradient(135deg, #FFB300 0%, #FFA000 100%);
+        }
+        
+        .btn-connect { 
+            background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%);
+            color: #5D4037;
+        }
+        
+        .btn-connect:hover {
+            background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);
+        }
+        
+        #walletAddress {
+            font-size: 0.85em;
+            color: #795548;
+            margin-top: 10px;
+            padding: 10px;
+            background: #FFF9E6;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* 优惠券列表样式 */
+        .coupon-list { 
+            display: grid; 
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .coupon-item { 
+            border: 2px solid #FFE082; 
+            padding: 20px; 
+            border-radius: 16px; 
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFFEF7 100%);
+            position: relative; 
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(255, 193, 7, 0.15);
+        }
+        
+        .coupon-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(255, 193, 7, 0.25);
+        }
+        
+        .coupon-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(180deg, #FFC107 0%, #FFB300 100%);
+        }
+        
+        .coupon-item.used { 
+            background: linear-gradient(135deg, #F5F5F5 0%, #EEEEEE 100%);
+            color: #999; 
+            border-color: #E0E0E0;
+            opacity: 0.7;
+        }
+        
+        .coupon-item.used::before {
+            background: #BDBDBD;
+        }
+        
+        .coupon-item.valid::before {
+            background: linear-gradient(180deg, #FFC107 0%, #FF6F00 100%);
+        }
+        
+        .coupon-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px;
+        }
+        
+        .coupon-value { 
+            font-size: 2em; 
+            font-weight: 800; 
+            background: linear-gradient(135deg, #FF6F00 0%, #FFA000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .coupon-limit { 
+            font-size: 0.95em; 
+            color: #795548;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        .tag { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .tag-valid { 
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFE082 100%);
+            color: #F57C00;
+            border: 1px solid #FFD54F;
+        }
+        
+        .tag-used { 
+            background: #E0E0E0; 
+            color: #757575;
+        }
+        
+        .coupon-date {
+            font-size: 0.85em;
+            color: #8D6E63;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .coupon-id {
+            font-size: 0.75em;
+            color: #BCAAA4;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #FFE082;
+        }
+
+        /* 模态框 (二维码) */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal { 
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFFEF7 100%);
+            padding: 35px; 
+            border-radius: 20px; 
+            text-align: center; 
+            max-width: 90%; 
+            position: relative;
+            border: 3px solid #FFD54F;
+            box-shadow: 0 12px 48px rgba(255, 193, 7, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .close-btn { 
+            position: absolute; 
+            top: 15px; 
+            right: 20px; 
+            font-size: 28px; 
+            cursor: pointer; 
+            color: #FFA000;
+            transition: all 0.3s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .close-btn:hover {
+            background: #FFF9E6;
+            transform: rotate(90deg);
+        }
+        
+        #qrcode { 
+            margin: 25px auto; 
+            display: flex; 
+            justify-content: center;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .qr-info { 
+            font-size: 0.85em; 
+            color: #795548; 
+            word-break: break-all; 
+            background: #FFF9E6; 
+            padding: 15px; 
+            border-radius: 10px;
+            border: 1px solid #FFE082;
+            margin-top: 15px;
+        }
+        
+        #loading {
+            text-align: center;
+            padding: 20px;
+            color: #F57C00;
+            font-weight: 600;
+            font-size: 1.1em;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8D6E63;
+            font-size: 1.1em;
+        }
+        
+        /* 转赠模态框样式 */
+        .transfer-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .transfer-modal {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFFEF7 100%);
+            padding: 35px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            border: 3px solid #FFD54F;
+            box-shadow: 0 12px 48px rgba(255, 193, 7, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        .transfer-modal h3 {
+            color: #F57C00;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .transfer-modal-content {
+            margin-top: 20px;
+        }
+        
+        .transfer-modal-content label {
+            display: block;
+            margin-bottom: 8px;
+            color: #E65100;
+            font-weight: 600;
+        }
+        
+        .transfer-modal-content input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #FFE082;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        .transfer-modal-content button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .transfer-modal-content button:hover {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+        
+        #transferStatus {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>用户端 - 我的优惠券</h2>
+        <button id="connectBtn" class="btn-connect" onclick="connectWallet()">连接 MetaMask</button>
+        <div id="walletAddress"></div>
+        
+        <div style="margin-top: 15px;">
+            <label>请输入您的消费者合约地址 (Consumer Contract):</label>
+            <input type="text" id="consumerContractAddr" placeholder="0x..." />
+            <button class="btn-primary" onclick="loadCoupons()">查询我的优惠券</button>
+        </div>
+    </div>
+
+    <div id="loading" style="text-align: center; display: none;">正在读取链上数据...</div>
+
+    <div id="couponList" class="coupon-list">
+        <!-- 优惠券将在这里生成 -->
+    </div>
+</div>
+
+<!-- 二维码弹窗 -->
+<div id="qrModal" class="modal-overlay">
+    <div class="modal">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3>向商家出示此码</h3>
+        <div id="qrcode"></div>
+        <p>扫码信息 (Json):</p>
+        <div id="qrText" class="qr-info"></div>
+        <p style="font-size: 0.85em; color: #8D6E63; margin-top:15px; line-height: 1.5;">商家填入左边的消费者地址和右边的优惠券地址即可核销</p>
+    </div>
+</div>
+
+<!-- 转赠模态框 -->
+<div id="transferModal" class="transfer-modal-overlay">
+    <div class="transfer-modal">
+        <span class="close-btn" onclick="closeTransferModal()">&times;</span>
+        <h3>转赠优惠券</h3>
+        <div class="transfer-modal-content">
+            <input type="hidden" id="transferConsumerAddr" />
+            <input type="hidden" id="transferCouponAddr" />
+            <label>接收方Consumer合约地址:</label>
+            <input type="text" id="transferToAddr" />
+            <button onclick="executeTransfer()">转赠</button>
+            <div id="transferStatus"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let provider, signer;
+    
+    // ABI 定义
+    // Consumer合约：我们需要 getCoupons()
+    const consumerAbi = [
+        "function getCoupons() public view returns(address[] memory)",
+        "function transfer(address newConsumer, address _coupon)"
+    ];
+    // Coupon合约：我们需要查看详情
+    const couponAbi = [
+        "function getValue() public view returns(uint)",
+        "function getLimit() public view returns(uint)",
+        "function getState() public view returns(uint)",
+        "function getEndDate() public view returns(bytes32)"
+    ];
+
+    async function connectWallet() {
+        if (typeof window.ethereum === 'undefined') return alert("请安装 MetaMask");
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            const addr = await signer.getAddress();
+            document.getElementById("walletAddress").innerText = "已连接: " + addr;
+            document.getElementById("connectBtn").innerText = "钱包已连接";
+        } catch (e) {
+            console.error(e);
+            alert("连接失败");
+        }
+    }
+
+    async function loadCoupons() {
+        const consumerAddr = document.getElementById("consumerContractAddr").value.trim();
+        if (!ethers.utils.isAddress(consumerAddr)) return alert("请输入有效的消费者合约地址");
+        if (!signer) return alert("请先连接钱包");
+
+        const listContainer = document.getElementById("couponList");
+        listContainer.innerHTML = "";
+        document.getElementById("loading").style.display = "block";
+
+        try {
+            const consumerContract = new ethers.Contract(consumerAddr, consumerAbi, signer);
+            
+            // 1. 获取当前拥有的优惠券地址
+            const currentCoupons = await consumerContract.getCoupons();
+            
+            // 2. 从 localStorage 获取历史优惠券记录
+            const storageKey = `coupons_${consumerAddr}`;
+            let historyCoupons = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            
+            // 3. 合并当前优惠券到历史记录（去重）
+            for (let addr of currentCoupons) {
+                if (!historyCoupons.includes(addr)) {
+                    historyCoupons.push(addr);
+                }
+            }
+            
+            // 4. 保存更新后的历史记录
+            localStorage.setItem(storageKey, JSON.stringify(historyCoupons));
+            
+            if (historyCoupons.length === 0) {
+                listContainer.innerHTML = "<div class='empty-state'>🎫 暂无优惠券</div>";
+                document.getElementById("loading").style.display = "none";
+                return;
+            }
+
+            // 5. 遍历所有历史优惠券获取详情
+            for (let cAddr of historyCoupons) {
+                const cContract = new ethers.Contract(cAddr, couponAbi, signer);
+                
+                // 读取数据
+                const val = await cContract.getValue();
+                const limit = await cContract.getLimit();
+                const state = await cContract.getState(); // 1:新创建, 2:已发放(可用), 3:已核销
+                const endDateBytes = await cContract.getEndDate();
+                
+                // 处理日期：如果是全0，显示"永久有效"
+                let endDateStr = "永久有效";
+                try {
+                    const parsed = ethers.utils.parseBytes32String(endDateBytes);
+                    if (parsed && parsed.trim()) {
+                        endDateStr = parsed;
+                    }
+                } catch (e) {
+                    // 解析失败，保持默认值
+                }
+
+                // 渲染 UI（包括已核销的）
+                renderCoupon(cAddr, consumerAddr, val, limit, state, endDateStr);
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("读取失败: " + (e.reason || e.message));
+        } finally {
+            document.getElementById("loading").style.display = "none";
+        }
+    }
+
+    function renderCoupon(couponAddr, consumerAddr, value, limit, state, endDate) {
+        const list = document.getElementById("couponList");
+        
+        // 状态判断
+        // state: 2 (已发放/未使用) 是我们最关心的。3 是已使用。
+        let statusClass = "used";
+        let statusText = "未知状态";
+        let canUse = false;
+
+        if (state.toString() === "2") {
+            statusClass = "valid";
+            statusText = "未使用";
+            canUse = true;
+        } else if (state.toString() === "3") {
+            statusClass = "used";
+            statusText = "已核销";
+        } else if (state.toString() === "1") {
+            statusText = "未发放"; // 理论上用户拿不到状态1的券，除非逻辑特殊
+        }
+
+        const div = document.createElement("div");
+        div.className = `coupon-item ${statusClass}`;
+        div.innerHTML = `
+            <div class="coupon-header">
+                <span class="tag tag-${canUse ? 'valid' : 'used'}">${statusText}</span>
+                <span class="coupon-date">📅 ${endDate}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top: 10px;">
+                <div>
+                    <div class="coupon-value">¥ ${value}</div>
+                    <div class="coupon-limit">满 ${limit} 可用</div>
+                </div>
+                ${canUse ? `
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn-primary" style="width:auto; padding:10px 20px; margin:0;" 
+                            onclick="showQR('${consumerAddr}', '${couponAddr}')">出示二维码</button>
+                        <button class="btn-secondary" style="width:auto; padding:10px 20px; margin:0; background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);" 
+                            onclick="showTransferModal('${consumerAddr}', '${couponAddr}')">转赠</button>
+                    </div>` : ''}
+            </div>
+            <div class="coupon-id">优惠券ID: ${couponAddr.substring(0,10)}...${couponAddr.substring(couponAddr.length-8)}</div>
+        `;
+        list.appendChild(div);
+    }
+
+    function showQR(consumerAddr, couponAddr) {
+        // 生成二维码数据
+        // 这里的格式可以根据实际扫码枪/APP需求定，这里我们生成一个JSON字符串
+        // 方便我们刚才写的商家端复制粘贴
+        /* 
+           注意：在真实的移动端DApp中，商家扫码后会自动解析
+           这里为了配合刚才的网页版商家端，我们展示文本让用户看
+        */
+        const qrData = JSON.stringify({
+            consumer: consumerAddr,
+            coupon: couponAddr
+        });
+
+        // 清空旧码
+        document.getElementById("qrcode").innerHTML = "";
+        document.getElementById("qrText").innerText = `用户: ${consumerAddr}\n券: ${couponAddr}`;
+
+        // 生成新码
+        new QRCode(document.getElementById("qrcode"), {
+            text: qrData,
+            width: 200,
+            height: 200
+        });
+
+        document.getElementById("qrModal").style.display = "flex";
+    }
+
+    function closeModal() {
+        document.getElementById("qrModal").style.display = "none";
+    }
+    
+    // 显示转赠模态框
+    function showTransferModal(consumerAddr, couponAddr) {
+        document.getElementById("transferConsumerAddr").value = consumerAddr;
+        document.getElementById("transferCouponAddr").value = couponAddr;
+        document.getElementById("transferToAddr").value = "";
+        document.getElementById("transferModal").style.display = "flex";
+    }
+    
+    // 关闭转赠模态框
+    function closeTransferModal() {
+        document.getElementById("transferModal").style.display = "none";
+    }
+    
+    // 执行转赠
+    async function executeTransfer() {
+        const consumerAddr = document.getElementById("transferConsumerAddr").value.trim();
+        const couponAddr = document.getElementById("transferCouponAddr").value.trim();
+        const toAddr = document.getElementById("transferToAddr").value.trim();
+        
+        if (!ethers.utils.isAddress(toAddr)) {
+            alert("请输入有效的接收方Consumer合约地址");
+            return;
+        }
+        
+        if (!signer) {
+            alert("请先连接钱包");
+            return;
+        }
+        
+        if (!confirm(`确定要将此优惠券转赠给:\n${toAddr}\n\n转赠后您将失去此优惠券的所有权。`)) {
+            return;
+        }
+        
+        try {
+            document.getElementById("transferStatus").innerHTML = "<div style='color: #2196F3;'>⏳ 正在发起转赠交易，请在 MetaMask 中确认...</div>";
+            
+            const consumerContract = new ethers.Contract(consumerAddr, consumerAbi, signer);
+            const tx = await consumerContract.transfer(toAddr, couponAddr);
+            
+            document.getElementById("transferStatus").innerHTML = `<div style='color: #2196F3;'>⏳ 交易已发送，等待确认...<br>Hash: ${tx.hash}</div>`;
+            
+            const receipt = await tx.wait();
+            
+            if (receipt.status === 1) {
+                document.getElementById("transferStatus").innerHTML = "<div style='color: #4CAF50;'>✅ 转赠成功！优惠券已转移到接收方账户。</div>";
+                
+                // 3秒后关闭模态框并刷新
+                setTimeout(() => {
+                    closeTransferModal();
+                    loadCoupons();
+                }, 3000);
+            } else {
+                document.getElementById("transferStatus").innerHTML = "<div style='color: #F44336;'>❌ 交易失败</div>";
+            }
+        } catch (error) {
+            console.error("转赠错误:", error);
+            let errorMsg = error.reason || error.message || "未知错误";
+            if (errorMsg.includes("user rejected")) {
+                errorMsg = "用户取消了交易";
+            }
+            document.getElementById("transferStatus").innerHTML = `<div style='color: #F44336;'>❌ 转赠失败: ${errorMsg}</div>`;
+        }
+    }
+    
+    // 点击遮罩层关闭
+    window.onclick = function(event) {
+        const qrModal = document.getElementById("qrModal");
+        const transferModal = document.getElementById("transferModal");
+        if (event.target == qrModal) {
+            qrModal.style.display = "none";
+        }
+        if (event.target == transferModal) {
+            transferModal.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
